@@ -1,0 +1,66 @@
+**********************************************************
+* Title: Starfill (in Memory lane)
+*
+* Objective: CMPSC 472 Homework 1
+*
+* Revision: V1.0
+*
+* Date: Jan. 27th, 2021
+*
+* Programmer: Shane Hagan
+*
+* Company: Penn State University
+*
+* Algorithm: Simple while loop demo of the HCS12 assembly program
+*
+* Register Use: A accumulator: character data to be filled
+*               B accumulator: counter, number of filled locations
+*               X register: memory address pointer
+*
+* Memory Use: RAM locations from $3000 to $3009
+*
+* Input: parameters hard coded
+*
+* Output: data filled in the memory locations from $3000 to $3009 changed
+*
+* Observation: used for instruction purposes, can be used as a loop template
+*
+* Note: also good template for comments and expectations for future programs
+*
+* Comments: developed and simulated using codewarrior
+*
+**********************************************************
+* Parameter delcaration section
+*
+* Export Symbols
+        XDEF      pgstart ; export 'pgstart' symbol
+        ABSENTRY  pgstart ; for assembly entry point
+* Symbols and Macros
+PORTA   EQU       $0000   ; i/o port addresses
+PORTB   EQU       $0001 
+DDRA    EQU       $0002 
+DDRB    EQU       $0003 
+**********************************************************
+* Data Section
+*
+        ORG       $3000   ;reserved memory starting address
+here    DS.B      $0CA    ;202 memory locations reserved
+count   DC.B      $0CA    ;constant, star count = 202
+*
+**********************************************************
+* Program Section
+*
+        ORG       $3100   ;program start address, in RAM
+pgstart ldaa      #'*'    ;load '*' into accumulator A
+        ldab      count   ;load star counter into B
+        ldx       #here   ;load address pointer into X
+loop    staa      0,x     ;put a star
+        inx               ;point to next location
+        decb              ;decrease counter
+        bne       loop    ;if not done, repeat
+done    bra       done    ;task finished
+                          ;do nothing
+*
+* Add any subroutines here
+*
+        END               ;last line of the file
