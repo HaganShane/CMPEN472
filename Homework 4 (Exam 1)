@@ -1,0 +1,168 @@
+**********************************************************
+* Title: LED Dimming
+*
+* Objective: CMPSC 472 Homework 4 (Exam 1)
+*
+* Revision: V1.0
+*
+* Date: Feb. 17th, 2021
+*
+* Programmer: Shane Hagan
+*
+* Company: Penn State University
+*
+* Program: LED 3 dim from 100 to 0, brighten from 0 to 100
+*
+*
+* Algorithm: Simple Parallel I/O use and time delay-loop demo
+*
+* Register Use: A, B: LED Light dimmers
+*               X, Y: Delay loop counters
+*
+* Memory Use:   RAM locations from $3000 for data
+*               RAM locations from $3100 for program
+*
+* Input:        parameters hard coded in the program - PORTB
+*
+* Output:
+*               LED 1 at PORTB bit 4
+*               LED 2 at PORTB bit 5
+*               LED 3 at PORTB bit 6
+*               LED 4 at PORTB bit 7
+*
+* Observation:  This is a program that will have LED 3 dim from 100 to 0, 0 to 100 
+*               
+*
+* Note: Code is copied from my Homework 3, then made some slight modifications
+* for the loops to reflect the dimming 0-100 and 100-0
+*
+**********************************************************
+* Parameter Declaration Section
+*
+* Export Symbols
+          XDEF        pstart            ; export 'pstart' symbol
+          ABSENTRY    pstart            ; for assembly entry point
+                                        
+* Symbols and Macros
+PORTA     EQU         $0000             ; i/o port A addresses
+DDRA      EQU         $0002
+PORTB     EQU         $0001             ; i/o port B addresses
+DDRB      EQU         $0003         
+
+**********************************************************
+* Data Section: address used [ $3000 to $30FF ] RAM Memory
+*
+          ORG         $3000             ; Reserved RAM memory for starting address
+                                        ;   for data for CMPEN 472 class
+Counter1  DC.W        $0004         ; X Register count number for the time delay
+                                       ;   inner loop for msec                                   
+Counter2  DC.W        $0001        ; Y register count number for the time delay
+                                        ;   outer loop for sec                                                
+                                    
+                                        ; Remaining data memory space for stack,
+                                        ;   up to program memory start  
+*
+**********************************************************
+* Program Section: address used [ $3100 to $3FFF ] RAM Memory
+*
+          ORG         $3100             ; Program start address, in RAM
+pstart    LDS         #$3100            ; initialize the stack pointer
+
+          LDAA        #%11110000       ; LED 1,2,3,4 at PORTB bit 4,5,6,7 FOR CSM-12C128 board
+          STAA        DDRB              ; set PORTB bit 4,5,6,7 as output
+          
+          LDAA        #%00010000
+          STAA        PORTB             ; clear all bits of PORTB
+
+* set initial states for other LEDs, check the switch, run the loops               
+mainLoop  
+          JSR         dimUp             ; run our dimUp subroutine (go from 0 to 100)
+          JSR         dimDown           ; run our dimDown subroutine (go from 100 to 0)
+          BRA         mainLoop          ; loop forever!
+
+          
+*
+**********************************************************
+* Subroutine Section: address used [ $3100 to $3FFF ] RAM Memory
+*  
+;*********************************************************
+; dimUp subroutine
+;
+; This subroutine will cause our LED light to dim up
+;
+; Input: 
+; Output: 
+; Register in use: 
+; Memory Locations in use: 
+dimUp
+          LDAA        #00              ; load 0 into our counter
+          
+dimUploop 
+          BCLR        PORTB,%01000000   ; turn OFF LED 3 at PORTB bit 6
+          JSR         delay10usec
+          BSET        PORTB,%01000000   ; turn ON LED 2 at PORTB 6 bit
+          JSR         delay10usec
+          DECA                          ; a - 1 (from the flow chart for decrementing)
+          CMPA        #100              ; compare our value to 0, then check criteria under
+          BEQ         mainLoop          ; if case is met, back to mainloop
+               
+          BRA         dimUploop         ; Loop through dimup otherwise
+
+
+
+
+;*********************************************************
+; dimDown subroutine
+;
+; This subroutine will cause our LED light to dim down
+;
+; Input: 
+; Output: 
+; Register in use:
+; Memory Locations in use: 
+dimDown
+          LDAA        #100            ; load 100 into our counter
+                  
+          
+dimDownloop
+          BCLR        PORTB,%01000000   ; turn OFF LED 3 at PORTB bit 6 
+          JSR         delay10usec
+          BSET        PORTB,%01000000   ; turn ON LED 2 at PORTB 6 bit
+          JSR         delay10usec                          ;
+          DECA                          ; a - 1 (from the flow chart for decrementing)
+          CMPA        #00               ; compare our value to 0, then check criteria under
+          BEQ         mainLoop          ; if case is met, back to mainloop
+         
+          BRA         dimDownloop       ; Loop through dimdown otherwise
+          
+
+
+
+
+ 
+ * add on delay10us subroutine from hw3, use counter1
+;*********************************************************
+; delay10us subroutine
+;
+; This subroutine will cause a 10 usec. delay
+;
+; Input: a 16 bit count number in Counter3
+; Output: time delay, CPU cycle waisted
+; Register in use: X register, as counter
+; Memory Locations in use: a 16 bit input number at Counter3
+
+delay10usec 
+          PSHA                          ; save A
+          LDAA        Counter1          ; long delay by
+          
+dlyuLoop 
+          DECA
+          BNE         dlyuLoop
+          
+          PULA                          ; restore A
+          RTS                           ; return         
+          
+ 
+          
+          end                           ; last line of the file
+
