@@ -1,0 +1,272 @@
+**********************************************************
+* Title: LED Light ON/OFF and Switch ON/OFF
+*
+* Objective: CMPSC 472 Homework 3
+*
+* Revision: V1.0
+*
+* Date: Feb. 10th, 2021
+*
+* Programmer: Shane Hagan
+*
+* Company: Penn State University
+*
+* Program: LED 4 blink every 1 second
+*          ON for .2 second, OFF for .8 second when switch 1 is not pressed
+*          ON for .8 second, OFF for .2 second when switch 1 is pressed
+*
+* Note:    On CSM-12C128 board,
+*          Switch 1 is at PORTB bit 0, and
+*          LED 4 is at PORTB bit 7.
+*          Program is developed and simulated 
+*          using codewarrior.
+*          One must set "switch 1" at PORTB bit 0 as an
+*          OUTPUT not an INPUT
+*          (If on CSM-12C128 board, PORTB bit 0 must be set to INPUT)
+*
+* Algorithm: Simple Parallel I/O use and time delay-loop demo
+*
+* Register Use: A: LED Light on/off state and Switch on/off state
+*               X, Y: Delay loop counters
+*
+* Memory Use:   RAM locations from $3000 for data
+*               RAM locations from $3100 for program
+*
+* Input:        parameters hard coded in the program - PORTB
+*               Switch 1 at PORTB bit 0
+*                      (set this bit as an output for simulation only - and add switch)
+*               Switch 2 at PORTB bit 1
+*               Switch 3 at PORTB bit 2
+*               Switch 4 at PORTB bit 3
+*
+* Output:
+*               LED 1 at PORTB bit 4
+*               LED 2 at PORTB bit 5
+*               LED 3 at PORTB bit 6
+*               LED 4 at PORTB bit 7
+*
+* Observation:  This is a program that blinks LEDs and blinking period can be changed
+*               with the delay loop counter value 
+*
+**********************************************************
+* Parameter Declaration Section
+*
+* Export Symbols
+          XDEF        pstart            ; export 'pstart' symbol
+          ABSENTRY    pstart            ; for assembly entry point
+                                        
+* Symbols and Macros
+PORTA     EQU         $0000             ; i/o port A addresses
+DDRA      EQU         $0002
+PORTB     EQU         $0001             ; i/o port B addresses
+DDRB      EQU         $0003         
+
+**********************************************************
+* Data Section: address used [ $3000 to $30FF ] RAM Memory
+*
+          ORG         $3000             ; Reserved RAM memory for starting address
+                                        ;   for data for CMPEN 472 class
+Counter1  DC.W        $003B             ; X Register count number for the time delay
+                                        ;   inner loop for msec                                   
+Counter2  DC.W        $000C             ; Y register count number for the time delay
+                                        ;   outer loop for sec
+* Number $008F and $000C will result in 1/10 second delay
+* our counter1 at $003B will be our 10 usec
+                                    
+                                        ; Remaining data memory space for stack,
+                                        ;   up to program memory start  
+*
+**********************************************************
+* Program Section: address used [ $3100 to $3FFF ] RAM Memory
+*
+          ORG         $3100             ; Program start address, in RAM
+pstart    LDS         #$3100            ; initialize the stack pointer
+
+          LDAA        #%11110001        ; LED 1,2,3,4 at PORTB bit 4,5,6,7 FOR CSM-12C128 board
+          STAA        DDRB              ; set PORTB bit 4,5,6,7 as output
+          
+          LDAA        #%00000000
+          STAA        PORTB             ; clear all bits of PORTB
+
+* set initial states for other LEDs, check the switch, run the loops               
+mainLoop  
+          BCLR        PORTB,%00010000   ; turn OFF LED 1 at PORTB bit 4
+          BCLR        PORTB,%01000000   ; turn OFF LED 3 at PORTB bit 6
+          BSET        PORTB,%10000000   ; turn ON LED 4 at PORTB 7 bit 
+          LDAA        PORTB             ; check bit 0 of PORTB, switch 1
+          ANDA        #%00000001        ; if 0, run switch not pushed loop
+          BNE         sw1pushed         ; if 1, run switch pushed loop
+
+
+
+
+* code below is based off the algorithm outlined in step 9
+* switch 1 not pushed, use 21 and 79 from program description from HW3
+sw1notpsh BSET        PORTB,%00100000   ; turn ON LED 2 at PORTB bit 5
+          LDAA        #$15              ; counter ONN to 21
+
+          
+loop21    JSR         delay10usec       ; delay our 10usec loop
+          DECA                          ; updates counter above
+          BGT         loop21            ; loop until 21
+          BCLR        PORTB,%00100000   ; turn OFF LED 2 at PORTB bit 5
+          LDAA        #$4F              ; counter OFF to 79
+          
+loop79    JSR         delay10usec       ; delay our 10usec loop
+          DECA                          ; updates counter above
+          BGT         loop79            ; loop until 79   
+          BRA         mainLoop          ; loop forever!
+          
+          
+          
+
+* switch 1 pushed, use 11 and 89 from program description from HW3          
+sw1pushed BSET        PORTB,%00100000   ; turn ON LED 2 at PORTB bit 5
+          LDAA        #$0B              ; counter ONN to 11
+          
+loop11    JSR         delay10usec       ; delay our 10usec loop
+          DECA                          ; updates counter above
+          BGT         loop11            ; loop until 21
+          BCLR        PORTB,%00100000   ; turn OFF LED 2 at PORTB bit 5
+          LDAA        #$59              ; counter OFF to 89
+          
+loop89    JSR         delay10usec       ; delay our 10usec loop
+          DECA                          ; updates counter above
+          BGT         loop89            ; loop until 89 
+          
+          BRA         mainLoop          ; loop forever!          
+       
+
+
+
+
+
+
+* sample program hw3 
+* can convert this method into a loop, so we're not putting hundreds of lines         
+*p20LED4
+*          JSR         LED4on            ; 20% light level (duty cycle)
+*          JSR         LED4on
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          JSR         LED4off
+*          BRA         mainLoop          ; check switch, loop forever!
+*          
+*p80LED4
+*          JSR         LED4on            ; 80% light level (duty cycle)
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4on
+*          JSR         LED4off
+*          JSR         LED4off
+*          BRA         mainLoop          ; check switch, loop forever!
+
+          
+*
+**********************************************************
+* Subroutine Section: address used [ $3100 to $3FFF ] RAM Memory
+*  
+*LED4off
+*          PSHA                          ; save A register
+*          LDAA        #%01111111        ; turn off LED 4 at PORTB bit 7
+*          ANDA        PORTB
+*          STAA        PORTB
+*          JSR         delay1sec         ; wait for 1 second
+*          PULA                          ; restore A register
+*          RTS 
+*          
+*
+;
+;
+*
+*LED4on
+*          PSHA                          ; save A register
+*          LDAA        #%10000000        ; turn on LED 4 at PORTB bit 7
+*          ORAA        PORTB
+*          STAA        PORTB
+*          JSR         delay1sec         ; wait for 1 second
+*          PULA                          ; restore A register
+*          RTS  
+           
+
+;*********************************************************
+; delay1sec subroutine
+;
+; This subroutine will cause a few sec. delay
+;
+; Input: a 16 bit count number in Counter2
+; Output: time delay, CPU cycle waisted
+; Register in use: Y register, as counter
+; Memory Locations in use: a 16 bit input number at Counter2
+*
+*delay1sec 
+*          PSHY                          ; save Y
+*          LDY         Counter2          ; long delay by
+*          
+*dly1Loop  JSR         delayMS           ; total time delay = Y * delayMS
+*          DEY
+*          BNE         dly1Loop
+*          
+*          PULY                          ; restore Y
+*          RTS                           ; return
+*          
+;*********************************************************
+; delayMS subroutine
+;
+; This subroutine will cause a few msec. delay
+;
+; Input: a 16 bit count number in Counter1
+; Output: time delay, CPU cycle waisted
+; Register in use: X register, as counter
+; Memory Locations in use: a 16 bit input number at Counter1
+*
+*delayMSsec   
+*          PSHX                          ; save X
+*          LDX         Counter1          ; short delay 
+*          
+*dlyMSLoop NOP                           ; total time delay = X * NOP
+*          DEX
+*          BNE         dlyMSLoop
+*          
+*          PULX                          ; restore X
+*          RTS                           ; return
+ 
+ 
+ * add on delay10us subroutine for hw3, use counter1
+;*********************************************************
+; delay10us subroutine
+;
+; This subroutine will cause a 10 usec. delay
+;
+; Input: a 16 bit count number in Counter3
+; Output: time delay, CPU cycle waisted
+; Register in use: X register, as counter
+; Memory Locations in use: a 16 bit input number at Counter3
+
+delay10usec 
+          PSHX                          ; save X
+          LDX         Counter1          ; long delay by
+          
+dlyuLoop 
+          DEX
+          BNE         dlyuLoop
+          
+          PULX                          ; restore X
+          RTS                           ; return         
+          
+ 
+ 
+ 
+ 
+          
+          end                           ; last line of the file
+
